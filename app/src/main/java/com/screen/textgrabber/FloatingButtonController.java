@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
 /**
  * 悬浮窗快捷提取按钮控制器
  * 依托无障碍服务直接挂载 TYPE_ACCESSIBILITY_OVERLAY 悬浮按钮（免额外悬浮窗权限），
- * 支持拖动记忆位置、点击提取当前屏幕可见窗口无障碍文字并按指定前缀（默认“详细总结”）写入剪贴板。
+ * 支持拖动记忆位置、点击全量深抓当前应用页面无障碍文字并按指定前缀（默认“详细总结”）写入剪贴板。
  */
 public class FloatingButtonController {
 
@@ -284,7 +284,9 @@ public class FloatingButtonController {
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                final String rawText = ScreenTextExtractor.extractCurrentScreenText(service);
+                final ScreenTextExtractor.ExtractionResult result = ScreenTextExtractor.extractFullAppPage(service);
+                final String rawText = result != null ? result.rawText : "";
+                final int lineCount = result != null ? result.lineCount : 0;
                 final String finalText = ScreenTextExtractor.buildPromptWithPrefix(prefix, rawText);
 
                 mainHandler.post(new Runnable() {
@@ -296,14 +298,19 @@ public class FloatingButtonController {
                             Toast.makeText(service, R.string.float_extract_empty, Toast.LENGTH_SHORT).show();
                             return;
                         }
-                        copyExtractedTextToClipboard(finalText, rawText != null ? rawText.trim().length() : 0, prefix);
+                        copyExtractedTextToClipboard(finalText, lineCount, rawText.trim().length(), prefix);
                     }
                 });
             }
         });
     }
 
-    private void copyExtractedTextToClipboard(final String finalText, int rawCharCount, String prefix) {
+    private void copyExtractedTextToClipboard(
+            final String finalText,
+            int lineCount,
+            int rawCharCount,
+            String prefix
+    ) {
         ClipboardManager cm = (ClipboardManager) service.getSystemService(Context.CLIPBOARD_SERVICE);
         if (finalText.length() > CLIPBOARD_SAFE_MAX_CHARS) {
             try {
@@ -342,8 +349,8 @@ public class FloatingButtonController {
             flashStatus(service.getString(R.string.float_btn_copied), COLOR_SUCCESS);
             String cleanPrefix = prefix != null ? prefix.trim() : "";
             String msg = cleanPrefix.isEmpty()
-                    ? service.getString(R.string.float_extract_copied_no_prefix, rawCharCount)
-                    : service.getString(R.string.float_extract_copied_with_prefix, cleanPrefix, rawCharCount);
+                    ? service.getString(R.string.float_extract_copied_no_prefix, lineCount, rawCharCount)
+                    : service.getString(R.string.float_extract_copied_with_prefix, cleanPrefix, lineCount, rawCharCount);
             Toast.makeText(service, msg, Toast.LENGTH_SHORT).show();
         } catch (RuntimeException e) {
             executor.execute(new Runnable() {

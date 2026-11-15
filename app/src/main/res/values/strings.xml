@@ -10,13 +10,13 @@
     <string name="floating_enabled_toast">悬浮窗提取按钮已开启（可直接拖动）</string>
     <string name="floating_need_accessibility_toast">已开启悬浮窗开关，请先在系统设置中开启 TextGrabber 无障碍服务</string>
     <string name="float_btn_idle">提取</string>
-    <string name="float_btn_busy">提取中</string>
+    <string name="float_btn_busy">深抓中…</string>
     <string name="float_btn_copied">已复制✓</string>
     <string name="float_btn_empty">无文字</string>
-    <string name="float_btn_desc">一键提取当前屏幕无障碍文字并复制</string>
+    <string name="float_btn_desc">一键深抓当前应用页面全部无障碍文字（含未显示与隐藏节点）并复制</string>
     <string name="float_extract_empty">当前屏幕未提取到无障碍文字</string>
-    <string name="float_extract_copied_with_prefix">已提取并复制（开头已加「%1$s」，正文 %2$d 字）</string>
-    <string name="float_extract_copied_no_prefix">已提取并复制当前屏幕文字（%1$d 字）</string>
+    <string name="float_extract_copied_with_prefix">已全量提取并复制（开头已加「%1$s」，共 %2$d 行 / %3$d 字）</string>
+    <string name="float_extract_copied_no_prefix">已全量提取并复制当前页面（共 %1$d 行 / %2$d 字）</string>
     <string name="permission_hint">请先在系统设置中开启 TextGrabber 无障碍服务</string>
     <string name="saved_count">存档总计: %1$d 条 | 本次抓取: %2$d 条</string>
     <string name="db_size">数据库大小: %1$s</string>

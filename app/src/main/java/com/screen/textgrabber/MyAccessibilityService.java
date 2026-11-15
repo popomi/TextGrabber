@@ -9,6 +9,9 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
+
+import java.util.List;
 
 /**
  * 核心无障碍服务类
@@ -23,13 +26,24 @@ public class MyAccessibilityService extends AccessibilityService {
     private DBManager dbManager;
     private DeduplicationLogic deduplicationLogic;
     private FloatingButtonController floatingController;
+    private final PageTextBuffer pageTextBuffer = new PageTextBuffer();
     private long lastProcessTime = 0;
     private static final long PROCESS_INTERVAL = 500;
+    private long lastBufferHarvestTime = 0L;
+    private static final long BUFFER_HARVEST_INTERVAL = 350L;
     private int savedCount = 0;
     private long lastClearVersion = 0L;
 
     public static boolean isServiceConnected() {
         return instance != null;
+    }
+
+    public PageTextBuffer getPageTextBuffer() {
+        return pageTextBuffer;
+    }
+
+    public String getLastForegroundExternalPkg() {
+        return pageTextBuffer.getLastForegroundExternalPkg();
     }
 
     /**
@@ -63,6 +77,7 @@ public class MyAccessibilityService extends AccessibilityService {
             if (svc.deduplicationLogic != null) {
                 svc.deduplicationLogic.clear();
             }
+            svc.pageTextBuffer.clear();
             svc.savedCount = 0;
             SharedPreferences sp = svc.getSharedPreferences("app_config", MODE_PRIVATE);
             svc.lastClearVersion = sp.getLong("clear_version", 0L);
@@ -74,6 +89,7 @@ public class MyAccessibilityService extends AccessibilityService {
         super.onCreate();
         instance = this;
         Log.d(TAG, "onCreate: Service created");
+        pageTextBuffer.setOwnPackageName(getPackageName());
         savedCount = 0;
         SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
         sp.edit().putInt("saved_count", 0).apply();
@@ -120,14 +136,33 @@ public class MyAccessibilityService extends AccessibilityService {
             if (deduplicationLogic != null) {
                 deduplicationLogic.clear();
             }
+            pageTextBuffer.clear();
             savedCount = 0;
             lastClearVersion = currentClearVersion;
         }
 
+        long currentTime = System.currentTimeMillis();
         isFunctionEnabled = sp.getBoolean("is_active", false);
+        boolean floatingEnabled = sp.getBoolean("floating_enabled", false);
+
+        if (event != null) {
+            int eventType = event.getEventType();
+            String eventPkg = event.getPackageName() != null ? event.getPackageName().toString() : "";
+            String eventClass = event.getClassName() != null ? event.getClassName().toString() : "";
+            if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                pageTextBuffer.onWindowStateChanged(eventPkg, eventClass, currentTime);
+            } else if (eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+                pageTextBuffer.onViewScrolled(eventPkg, currentTime);
+            }
+        }
+
+        if ((floatingEnabled || isFunctionEnabled) && (currentTime - lastBufferHarvestTime >= BUFFER_HARVEST_INTERVAL)) {
+            lastBufferHarvestTime = currentTime;
+            harvestPageBuffer(event, currentTime);
+        }
+
         if (!isFunctionEnabled) return;
 
-        long currentTime = System.currentTimeMillis();
         if (currentTime - lastProcessTime < PROCESS_INTERVAL) {
             return;
         }
@@ -148,6 +183,73 @@ public class MyAccessibilityService extends AccessibilityService {
         } finally {
             try {
                 rootNode.recycle();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void harvestPageBuffer(AccessibilityEvent event, long nowMs) {
+        String ownPkg = getPackageName() != null ? getPackageName() : PageTextBuffer.OWN_PACKAGE_FALLBACK;
+
+        AccessibilityNodeInfo activeRoot = null;
+        try {
+            activeRoot = getRootInActiveWindow();
+            if (activeRoot != null && !isNodeInExcludedWindow(activeRoot)) {
+                CharSequence rawPkg = activeRoot.getPackageName();
+                String rootPkg = rawPkg != null ? rawPkg.toString() : "";
+                if (!PageTextBuffer.isIgnoredPackage(rootPkg, ownPkg)) {
+                    List<ScreenTextExtractor.NodeLine> lines = ScreenTextExtractor.collectNodesFromRoot(activeRoot, ownPkg);
+                    pageTextBuffer.recordSnapshot(rootPkg, lines, true, nowMs);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            safeRecycleNode(activeRoot);
+        }
+
+        if (event == null) {
+            return;
+        }
+        AccessibilityNodeInfo sourceNode = null;
+        try {
+            sourceNode = event.getSource();
+            if (sourceNode != null && !isNodeInExcludedWindow(sourceNode)) {
+                CharSequence rawSrcPkg = sourceNode.getPackageName();
+                String srcPkg = rawSrcPkg != null
+                        ? rawSrcPkg.toString()
+                        : (event.getPackageName() != null ? event.getPackageName().toString() : "");
+                if (!PageTextBuffer.isIgnoredPackage(srcPkg, ownPkg)) {
+                    List<ScreenTextExtractor.NodeLine> sourceLines = ScreenTextExtractor.collectNodesFromRoot(sourceNode, ownPkg);
+                    pageTextBuffer.recordSnapshot(srcPkg, sourceLines, false, nowMs);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            safeRecycleNode(sourceNode);
+        }
+    }
+
+    private static boolean isNodeInExcludedWindow(AccessibilityNodeInfo node) {
+        AccessibilityWindowInfo win = null;
+        try {
+            win = node.getWindow();
+            return win != null && ScreenTextExtractor.isExcludedWindowType(win.getType());
+        } catch (Exception ignored) {
+            return false;
+        } finally {
+            if (win != null) {
+                try {
+                    win.recycle();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    private static void safeRecycleNode(AccessibilityNodeInfo node) {
+        if (node != null) {
+            try {
+                node.recycle();
             } catch (Exception ignored) {
             }
         }
@@ -230,6 +332,7 @@ public class MyAccessibilityService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        pageTextBuffer.clear();
         if (floatingController != null) {
             floatingController.destroy();
             floatingController = null;

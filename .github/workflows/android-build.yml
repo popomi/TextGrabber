@@ -56,13 +56,13 @@ jobs:
       - name: Prepare and verify APK outputs
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/TextGrabber-v1.3.0-release.apk
-          cp app/build/outputs/apk/debug/app-debug.apk dist/TextGrabber-v1.3.0-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/TextGrabber-v1.4.0-release.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/TextGrabber-v1.4.0-debug.apk
           ls -lh dist/
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name "apksigner" | sort -V | tail -n 1)
           echo "Using apksigner: $APKSIGNER"
-          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.3.0-release.apk
-          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.3.0-debug.apk
+          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.4.0-release.apk
+          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.4.0-debug.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
           name: TextGrabber ${{ github.ref_name }}
           body: |
             TextGrabber 改造增强版 ${{ github.ref_name }}
-            - 新增：悬浮窗快捷提取按钮（依托无障碍服务直接悬浮、可自由拖动记忆位置，点击即刻提取当前屏幕全部可见无障碍文字，最开头自动加上「详细总结」并复制到剪贴板；主界面支持开关控制与自定义复制前缀）
-            - 包含 v1.2.0 全部增强：一键清空文本/缓存/数据库、一键导出全部抓包文本/纯文本/CSV/原始DB、全量抓包存档展示（按时间抓包 / 数据库无障碍包 / 纯文本全文）及单条/全部一键复制
+            - 升级：悬浮窗全量无障碍深抓引擎（彻底移除 isVisibleToUser 限制，全量抓取当前应用全部窗口与子窗口、屏幕外预加载/隐藏/异步延迟节点；后台随事件维护页面级滚动与延迟缓存，并在点击「提取」后执行自适应多轮延迟采样与智能去重合并，大幅提升抓全率，开头自动加「详细总结」一键复制）
+            - 包含 v1.3.0 & v1.2.0 全部增强：悬浮窗快捷提取开关与自定义前缀、一键清空文本/缓存/数据库、一键导出全部抓包文本/纯文本/CSV/原始DB、全量抓包存档展示及单条/全部一键复制
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

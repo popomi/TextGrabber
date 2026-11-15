@@ -10,13 +10,13 @@
     <string name="floating_enabled_toast">Floating extract button enabled (draggable)</string>
     <string name="floating_need_accessibility_toast">Floating extract enabled; please enable TextGrabber Accessibility Service in Settings</string>
     <string name="float_btn_idle">Grab</string>
-    <string name="float_btn_busy">Wait…</string>
+    <string name="float_btn_busy">Deep…</string>
     <string name="float_btn_copied">Copied✓</string>
     <string name="float_btn_empty">Empty</string>
-    <string name="float_btn_desc">Extract current screen accessibility text and copy</string>
+    <string name="float_btn_desc">Deep-extract all accessibility text of current app page (including offscreen &amp; hidden) and copy</string>
     <string name="float_extract_empty">No accessibility text found on current screen</string>
-    <string name="float_extract_copied_with_prefix">Copied with prefix "%1$s" (%2$d chars)</string>
-    <string name="float_extract_copied_no_prefix">Copied screen text (%1$d chars)</string>
+    <string name="float_extract_copied_with_prefix">Copied full page with prefix \"%1$s\" (%2$d lines / %3$d chars)</string>
+    <string name="float_extract_copied_no_prefix">Copied full page text (%1$d lines / %2$d chars)</string>
     <string name="permission_hint">Please enable TextGrabber Accessibility Service in Settings</string>
     <string name="saved_count">Archived: %1$d | Session: %2$d</string>
     <string name="db_size">DB Size: %1$s</string>
