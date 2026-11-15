@@ -1,15 +1,67 @@
 <resources>
     <string name="app_name">TextGrabber</string>
-    <string name="accessibility_service_description">TextGrabber Service to capture screen text.</string>
-    <string name="service_enabled">Service Enabled</string>
-    <string name="service_disabled">Service Disabled</string>
-    <string name="toggle_service">Toggle Text Capture</string>
-    <string name="permission_hint">Please enable Accessibility Service in Settings</string>
-    <string name="saved_count">已保存: %d 条</string>
+    <string name="accessibility_service_description">TextGrabber 无障碍文本抓包服务</string>
+    <string name="service_enabled">服务已开启</string>
+    <string name="service_disabled">服务已关闭</string>
+    <string name="toggle_service">实时抓包</string>
+    <string name="permission_hint">请先在系统设置中开启 TextGrabber 无障碍服务</string>
+    <string name="saved_count">存档总计: %1$d 条 | 本次抓取: %2$d 条</string>
+    <string name="db_size">数据库大小: %1$s</string>
+    <string name="accessibility_granted">无障碍服务: 已授权运行</string>
+    <string name="accessibility_not_granted">无障碍服务: 未开启 (点此授权)</string>
+
+    <string name="btn_clear_all">清空文本/数据库</string>
+    <string name="btn_export_all">导出全部文本</string>
+    <string name="btn_copy_all">一键复制全部</string>
+    <string name="btn_copy_pure">仅复制纯文本</string>
+
+    <string name="tab_timeline">按时间抓包</string>
+    <string name="tab_database">数据库无障碍包</string>
+    <string name="tab_plain">纯文本全文</string>
+
+    <string name="pkg_filter_all">全部无障碍包 (%1$d) ▾</string>
+    <string name="pkg_filter_selected">%1$s (%2$d) ▾</string>
+    <string name="pkg_filter_title">按无障碍包筛选</string>
+    <string name="pkg_filter_all_option">全部无障碍包（共 %1$d 条）</string>
+
+    <string name="sort_newest_first">⬇ 最新优先</string>
+    <string name="sort_oldest_first">⬆ 时间正序</string>
+
+    <string name="search_hint">搜索文本 / 无障碍包名 / 控件ID...</string>
+    <string name="btn_clear_filter">重置</string>
+    <string name="copy_item">复制</string>
+    <string name="no_data">(暂无抓取存档数据)</string>
+
+    <string name="archive_summary_packets">当前展示: %1$d 个时间抓包（共 %2$d 条记录 / 库总计 %3$d 条）</string>
+    <string name="archive_summary_records">当前展示: %1$d 条数据库记录（库总计 %2$d 条）</string>
+
+    <string name="clear_dialog_title">确认清空全部数据？</string>
+    <string name="clear_dialog_message">此操作将永久清空：\n1. SQLite 数据库中的全部抓取记录\n2. 内存去重缓存（清空后可立即重新抓取当前屏幕）\n3. 当前界面列表与计数统计\n\n是否确认继续？</string>
+    <string name="clear_confirm">确认清空</string>
+    <string name="cancel">取消</string>
+    <string name="clear_done_toast">已清空全部文本、去重缓存与数据库</string>
+
+    <string name="export_empty_toast">当前没有可导出的抓包数据</string>
+    <string name="export_working_toast">正在生成导出文件…</string>
+    <string name="export_failed_toast">导出失败: %1$s</string>
+    <string name="export_dialog_title">导出成功</string>
+    <string name="export_dialog_message">已将当前 %1$d 条抓包存档写入：\n%2$s</string>
+    <string name="export_action_share">立即分享文件</string>
+    <string name="export_action_pure_txt">另存纯文字版 (.txt)</string>
+    <string name="export_action_csv">导出 CSV 明细表 (.csv)</string>
+    <string name="export_action_db">导出 SQLite 数据库 (.db)</string>
+    <string name="close">关闭</string>
+    <string name="share_chooser_title">分享导出数据</string>
+
+    <string name="copy_empty_toast">当前没有可复制的数据</string>
+    <string name="copy_item_done">已复制文本内容</string>
+    <string name="copy_item_full_done">已复制完整抓包元数据</string>
+    <string name="copy_all_done">已复制全部存档（%1$d 字符）</string>
+    <string name="copy_pure_done">已复制全部纯文本（%1$d 字符）</string>
+    <string name="copy_truncated_auto_export">文本超过 40 万字符，已复制前 40 万字符并同步导出完整文件至：%1$s</string>
+    <string name="copy_failed_auto_export">剪贴板容量受限，已自动导出完整文件至：%1$s</string>
+
     <string name="recent_texts_title">最近 %d 条记录:\n</string>
-    <string name="no_data">(暂无数据)</string>
-    <string name="db_size">数据库大小：%1$s</string>
-    <string name="search_hint">输入关键词搜索内容</string>
     <string name="search_button">搜索</string>
     <string name="search_results_title">搜索结果（%d 条）:\n</string>
     <string name="search_results_placeholder">搜索结果:\n(请输入关键词后点击搜索)</string>

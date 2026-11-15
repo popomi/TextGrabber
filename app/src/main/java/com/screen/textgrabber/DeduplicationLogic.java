@@ -37,7 +37,7 @@ public class DeduplicationLogic {
      * @param key 唯一键
      * @return 如果缓存中已存在（即最近处理过），返回 true；否则返回 false 并加入缓存。
      */
-    public boolean isDuplicate(String key) {
+    public synchronized boolean isDuplicate(String key) {
         if (processedCache.get(key) != null) {
             // 缓存命中，说明是重复数据
             return true;
@@ -45,5 +45,12 @@ public class DeduplicationLogic {
         // 未命中，加入缓存，记录当前时间
         processedCache.put(key, System.currentTimeMillis());
         return false;
+    }
+
+    /**
+     * 清空去重缓存，确保清空数据库后可立即重新抓取相同屏幕文本
+     */
+    public synchronized void clear() {
+        processedCache.evictAll();
     }
 }

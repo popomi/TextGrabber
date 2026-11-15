@@ -1,15 +1,67 @@
 <resources>
     <string name="app_name">TextGrabber</string>
-    <string name="accessibility_service_description">TextGrabber Service to capture screen text.</string>
+    <string name="accessibility_service_description">TextGrabber Accessibility Text Capture Service</string>
     <string name="service_enabled">Service Enabled</string>
     <string name="service_disabled">Service Disabled</string>
-    <string name="toggle_service">Toggle Text Capture</string>
-    <string name="permission_hint">Please enable Accessibility Service in Settings</string>
-    <string name="saved_count">Saved: %d items</string>
+    <string name="toggle_service">Live Capture</string>
+    <string name="permission_hint">Please enable TextGrabber Accessibility Service in Settings</string>
+    <string name="saved_count">Archived: %1$d | Session: %2$d</string>
+    <string name="db_size">DB Size: %1$s</string>
+    <string name="accessibility_granted">Accessibility: Active</string>
+    <string name="accessibility_not_granted">Accessibility: Disabled (Tap to enable)</string>
+
+    <string name="btn_clear_all">Clear Text &amp; DB</string>
+    <string name="btn_export_all">Export All Text</string>
+    <string name="btn_copy_all">Copy All Archive</string>
+    <string name="btn_copy_pure">Copy Plain Text</string>
+
+    <string name="tab_timeline">Timeline Packets</string>
+    <string name="tab_database">DB Packages</string>
+    <string name="tab_plain">Plain Text</string>
+
+    <string name="pkg_filter_all">All Packages (%1$d) ▾</string>
+    <string name="pkg_filter_selected">%1$s (%2$d) ▾</string>
+    <string name="pkg_filter_title">Filter by Accessibility Package</string>
+    <string name="pkg_filter_all_option">All Packages (%1$d items)</string>
+
+    <string name="sort_newest_first">⬇ Newest First</string>
+    <string name="sort_oldest_first">⬆ Chronological</string>
+
+    <string name="search_hint">Search text / package / view ID...</string>
+    <string name="btn_clear_filter">Reset</string>
+    <string name="copy_item">Copy</string>
+    <string name="no_data">(No archived capture data)</string>
+
+    <string name="archive_summary_packets">Showing: %1$d packets (%2$d records / %3$d total)</string>
+    <string name="archive_summary_records">Showing: %1$d DB records (%2$d total)</string>
+
+    <string name="clear_dialog_title">Clear All Data?</string>
+    <string name="clear_dialog_message">This will permanently clear:\n1. All records in SQLite database\n2. In-memory deduplication cache (allows immediate re-capture)\n3. Displayed list and counters\n\nContinue?</string>
+    <string name="clear_confirm">Clear All</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear_done_toast">Cleared all captured text, dedup cache, and database</string>
+
+    <string name="export_empty_toast">No captured data to export</string>
+    <string name="export_working_toast">Exporting file…</string>
+    <string name="export_failed_toast">Export failed: %1$s</string>
+    <string name="export_dialog_title">Export Successful</string>
+    <string name="export_dialog_message">Saved %1$d records to:\n%2$s</string>
+    <string name="export_action_share">Share File</string>
+    <string name="export_action_pure_txt">Save Plain Text (.txt)</string>
+    <string name="export_action_csv">Export CSV Table (.csv)</string>
+    <string name="export_action_db">Export SQLite DB (.db)</string>
+    <string name="close">Close</string>
+    <string name="share_chooser_title">Share Exported Data</string>
+
+    <string name="copy_empty_toast">Nothing to copy</string>
+    <string name="copy_item_done">Copied text</string>
+    <string name="copy_item_full_done">Copied full packet metadata</string>
+    <string name="copy_all_done">Copied full archive (%1$d chars)</string>
+    <string name="copy_pure_done">Copied plain text (%1$d chars)</string>
+    <string name="copy_truncated_auto_export">Exceeded 400k chars: copied first 400k chars and exported full file to: %1$s</string>
+    <string name="copy_failed_auto_export">Clipboard limit exceeded; exported full file to: %1$s</string>
+
     <string name="recent_texts_title">Recent %d items:\n</string>
-    <string name="no_data">(No data)</string>
-    <string name="db_size">Database size: %1$s</string>
-    <string name="search_hint">Enter keyword to search content</string>
     <string name="search_button">Search</string>
     <string name="search_results_title">Search results (%d):\n</string>
     <string name="search_results_placeholder">Search results:\n(Enter a keyword and tap Search)</string>

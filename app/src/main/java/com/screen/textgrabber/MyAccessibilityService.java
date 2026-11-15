@@ -2,9 +2,9 @@ package com.screen.textgrabber;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.SharedPreferences;
+import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.util.Log;
 
 /**
  * 核心无障碍服务类
@@ -12,133 +12,163 @@ import android.util.Log;
  */
 public class MyAccessibilityService extends AccessibilityService {
 
-    private boolean isFunctionEnabled = false; // 功能开关状态
-    private DBManager dbManager; // 数据库管理器
-    private DeduplicationLogic deduplicationLogic; // 去重逻辑
-    private long lastProcessTime = 0; // 上次处理时间
-    private static final long PROCESS_INTERVAL = 500; // 节流间隔 (毫秒)，防止处理过于频繁
-    private int savedCount = 0; // 本次启动保存的文本数量
+    private static final String TAG = "MyAccessibilityService";
+    private static volatile MyAccessibilityService instance;
+
+    private boolean isFunctionEnabled = false;
+    private DBManager dbManager;
+    private DeduplicationLogic deduplicationLogic;
+    private long lastProcessTime = 0;
+    private static final long PROCESS_INTERVAL = 500;
+    private int savedCount = 0;
+    private long lastClearVersion = 0L;
+
+    /**
+     * 当外部（如 MainActivity 一键清空）清理数据时，通知服务立即清空内存去重缓存并归零本次计数
+     */
+    public static void notifyDataCleared() {
+        MyAccessibilityService svc = instance;
+        if (svc != null) {
+            if (svc.deduplicationLogic != null) {
+                svc.deduplicationLogic.clear();
+            }
+            svc.savedCount = 0;
+            SharedPreferences sp = svc.getSharedPreferences("app_config", MODE_PRIVATE);
+            svc.lastClearVersion = sp.getLong("clear_version", 0L);
+        }
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d("MyAccessibilityService", "onCreate: Service created");
-        // 重置计数器
+        instance = this;
+        Log.d(TAG, "onCreate: Service created");
         savedCount = 0;
-        getSharedPreferences("app_config", MODE_PRIVATE).edit().putInt("saved_count", 0).apply();
+        SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
+        sp.edit().putInt("saved_count", 0).apply();
+        lastClearVersion = sp.getLong("clear_version", 0L);
     }
 
     @Override
     public void onServiceConnected() {
         super.onServiceConnected();
-        Log.d("MyAccessibilityService", "onServiceConnected: Service connected");
-        // 显示 Toast 提示，确保用户能看到服务启动了
+        instance = this;
+        Log.d(TAG, "onServiceConnected: Service connected");
         android.widget.Toast.makeText(this, "TextGrabber 服务已启动", android.widget.Toast.LENGTH_SHORT).show();
-        
-        // 初始化组件
+
         dbManager = new DBManager(this);
         deduplicationLogic = new DeduplicationLogic();
-        // 读取初始开关状态
+
         SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
         isFunctionEnabled = sp.getBoolean("is_active", false);
-        Log.d("MyAccessibilityService", "Initial function enabled state: " + isFunctionEnabled);
+        lastClearVersion = sp.getLong("clear_version", 0L);
+        Log.d(TAG, "Initial function enabled state: " + isFunctionEnabled);
     }
 
-    /**
-     * 当系统检测到与无障碍服务匹配的事件时调用
-     */
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Log.d("MyAccessibilityService", "onAccessibilityEvent: " + AccessibilityEvent.eventTypeToString(event.getEventType()));
-        
-        // 每次事件触发都检查一下开关状态（虽然有点耗性能，但能保证实时响应开关）
         SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
-        isFunctionEnabled = sp.getBoolean("is_active", false);
+        long currentClearVersion = sp.getLong("clear_version", 0L);
+        if (currentClearVersion != lastClearVersion) {
+            if (deduplicationLogic != null) {
+                deduplicationLogic.clear();
+            }
+            savedCount = 0;
+            lastClearVersion = currentClearVersion;
+        }
 
+        isFunctionEnabled = sp.getBoolean("is_active", false);
         if (!isFunctionEnabled) return;
 
-        // 节流处理：如果距离上次处理时间太短，则跳过
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastProcessTime < PROCESS_INTERVAL) {
             return;
         }
         lastProcessTime = currentTime;
 
-        // 获取当前活动窗口的根节点
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
         if (rootNode == null) return;
 
-        // 开始递归遍历
-        traverseNode(rootNode);
-    }
-
-    /**
-     * 递归遍历视图树
-     * @param node 当前节点
-     */
-    private void traverseNode(AccessibilityNodeInfo node) {
-        if (node == null) return;
-
-        // 如果节点包含文字，则进行处理
-        if (node.getText() != null && node.getText().length() > 0) {
-            String content = node.getText().toString();
-            String viewId = node.getViewIdResourceName();
-            String className = node.getClassName().toString();
-            String packageName = node.getPackageName() != null ? node.getPackageName().toString() : "";
-
-            // 调试日志：查看 viewId 获取情况
-            // Log.d("MyAccessibilityService", "Content: " + content.substring(0, Math.min(30, content.length())) + 
-            //       " | ViewId: " + (viewId != null ? viewId : "NULL") + 
-            //       " | Package: " + packageName);
-
-            // 处理并保存
-            processAndSave(content, viewId, packageName, className);
+        String fallbackPkg = "";
+        if (rootNode.getPackageName() != null) {
+            fallbackPkg = rootNode.getPackageName().toString();
+        } else if (event != null && event.getPackageName() != null) {
+            fallbackPkg = event.getPackageName().toString();
         }
 
-        // 遍历子节点
-        int count = node.getChildCount();
-        for (int i = 0; i < count; i++) {
-            AccessibilityNodeInfo child = node.getChild(i);
-            if (child != null) {
-                traverseNode(child);
-                // 记得回收子节点，防止内存泄漏
-                child.recycle();
+        try {
+            traverseNode(rootNode, fallbackPkg);
+        } finally {
+            try {
+                rootNode.recycle();
+            } catch (Exception ignored) {
             }
         }
     }
 
-    /**
-     * 处理文字并保存到数据库
-     */
+    private void traverseNode(AccessibilityNodeInfo node, String fallbackPkg) {
+        if (node == null) return;
+
+        if (node.getText() != null && node.getText().length() > 0) {
+            String content = node.getText().toString();
+            String viewId = node.getViewIdResourceName();
+            String className = node.getClassName() != null ? node.getClassName().toString() : "";
+            String packageName = node.getPackageName() != null ? node.getPackageName().toString() : fallbackPkg;
+            processAndSave(content, viewId, packageName, className);
+        }
+
+        int count = node.getChildCount();
+        for (int i = 0; i < count; i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) {
+                try {
+                    traverseNode(child, fallbackPkg);
+                } finally {
+                    try {
+                        child.recycle();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
+    }
+
     private void processAndSave(String content, String viewId, String packageName, String className) {
-        // 过滤空字符串
         if (content.trim().isEmpty()) return;
 
-        // 排除自己的 app，不抓取 TextGrabber 自身的文本
         if ("com.screen.textgrabber".equals(packageName)) {
             return;
         }
 
-        // 生成唯一键
-        String uniqueKey = deduplicationLogic.generateKey(packageName, viewId, content);
+        if (deduplicationLogic == null) {
+            deduplicationLogic = new DeduplicationLogic();
+        }
+        if (dbManager == null) {
+            dbManager = new DBManager(this);
+        }
 
-        // 检查是否重复
+        String uniqueKey = deduplicationLogic.generateKey(packageName, viewId, content);
         if (deduplicationLogic.isDuplicate(uniqueKey)) {
             return;
         }
-        // log
-        Log.d("MyAccessibilityService", "Processing text: " + content);
 
-        // 保存到数据库
-        dbManager.insertText(content, packageName, viewId, System.currentTimeMillis(), uniqueKey);
-        
-        // 增加计数并保存到 SharedPreferences
-        savedCount++;
-        getSharedPreferences("app_config", MODE_PRIVATE).edit().putInt("saved_count", savedCount).apply();
+        boolean inserted = dbManager.insertText(content, packageName, viewId, System.currentTimeMillis(), uniqueKey);
+        if (inserted) {
+            savedCount++;
+            getSharedPreferences("app_config", MODE_PRIVATE).edit().putInt("saved_count", savedCount).apply();
+        }
     }
 
     @Override
     public void onInterrupt() {
-        // 服务中断时的回调，通常不需要处理
+        // 服务中断回调
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (instance == this) {
+            instance = null;
+        }
     }
 }
