@@ -56,13 +56,13 @@ jobs:
       - name: Prepare and verify APK outputs
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/TextGrabber-v1.2.0-release.apk
-          cp app/build/outputs/apk/debug/app-debug.apk dist/TextGrabber-v1.2.0-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/TextGrabber-v1.3.0-release.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/TextGrabber-v1.3.0-debug.apk
           ls -lh dist/
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name "apksigner" | sort -V | tail -n 1)
           echo "Using apksigner: $APKSIGNER"
-          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.2.0-release.apk
-          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.2.0-debug.apk
+          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.3.0-release.apk
+          "$APKSIGNER" verify --verbose dist/TextGrabber-v1.3.0-debug.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -87,9 +87,7 @@ jobs:
           name: TextGrabber ${{ github.ref_name }}
           body: |
             TextGrabber 改造增强版 ${{ github.ref_name }}
-            - 新增：一键清空文本、内存去重缓存与 SQLite 数据库（含 VACUUM 回收空间）
-            - 新增：一键导出当前抓包全部文本至 Download/TextGrabber/，并支持导出纯文字 .txt、CSV 明细表与原始 .db 数据库及系统分享
-            - 新增：全量存档展示（解除 50 条与 50 字截断限制），支持「按时间抓包」「数据库无障碍包」「纯文本全文」三种视图切换
-            - 新增：单条/单包/全部/纯文本一键复制、无障碍包名筛选、时间正倒序切换与实时搜索
+            - 新增：悬浮窗快捷提取按钮（依托无障碍服务直接悬浮、可自由拖动记忆位置，点击即刻提取当前屏幕全部可见无障碍文字，最开头自动加上「详细总结」并复制到剪贴板；主界面支持开关控制与自定义复制前缀）
+            - 包含 v1.2.0 全部增强：一键清空文本/缓存/数据库、一键导出全部抓包文本/纯文本/CSV/原始DB、全量抓包存档展示（按时间抓包 / 数据库无障碍包 / 纯文本全文）及单条/全部一键复制
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,14 +1,18 @@
 package com.screen.textgrabber;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 /**
  * 核心无障碍服务类
- * 负责监听屏幕事件，遍历视图树，提取文字并保存。
+ * 负责监听屏幕事件，遍历视图树，提取文字并保存，同时管理悬浮窗快捷提取按钮。
  */
 public class MyAccessibilityService extends AccessibilityService {
 
@@ -18,10 +22,37 @@ public class MyAccessibilityService extends AccessibilityService {
     private boolean isFunctionEnabled = false;
     private DBManager dbManager;
     private DeduplicationLogic deduplicationLogic;
+    private FloatingButtonController floatingController;
     private long lastProcessTime = 0;
     private static final long PROCESS_INTERVAL = 500;
     private int savedCount = 0;
     private long lastClearVersion = 0L;
+
+    public static boolean isServiceConnected() {
+        return instance != null;
+    }
+
+    /**
+     * 立即同步悬浮窗显示/隐藏状态
+     */
+    public static void syncFloatingWindowState() {
+        final MyAccessibilityService svc = instance;
+        if (svc == null) {
+            return;
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            svc.applyFloatingWindowPreference();
+        } else {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    if (instance == svc) {
+                        svc.applyFloatingWindowPreference();
+                    }
+                }
+            });
+        }
+    }
 
     /**
      * 当外部（如 MainActivity 一键清空）清理数据时，通知服务立即清空内存去重缓存并归零本次计数
@@ -58,11 +89,27 @@ public class MyAccessibilityService extends AccessibilityService {
 
         dbManager = new DBManager(this);
         deduplicationLogic = new DeduplicationLogic();
+        floatingController = new FloatingButtonController(this);
 
         SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
         isFunctionEnabled = sp.getBoolean("is_active", false);
         lastClearVersion = sp.getLong("clear_version", 0L);
         Log.d(TAG, "Initial function enabled state: " + isFunctionEnabled);
+
+        applyFloatingWindowPreference();
+    }
+
+    private void applyFloatingWindowPreference() {
+        if (floatingController == null) {
+            return;
+        }
+        SharedPreferences sp = getSharedPreferences("app_config", MODE_PRIVATE);
+        boolean floatingEnabled = sp.getBoolean("floating_enabled", false);
+        if (floatingEnabled) {
+            floatingController.show();
+        } else {
+            floatingController.hide();
+        }
     }
 
     @Override
@@ -160,13 +207,33 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (floatingController != null) {
+            floatingController.onConfigurationChanged();
+        }
+    }
+
+    @Override
     public void onInterrupt() {
         // 服务中断回调
     }
 
     @Override
+    public boolean onUnbind(Intent intent) {
+        if (floatingController != null) {
+            floatingController.hide();
+        }
+        return super.onUnbind(intent);
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
+        if (floatingController != null) {
+            floatingController.destroy();
+            floatingController = null;
+        }
         if (instance == this) {
             instance = null;
         }

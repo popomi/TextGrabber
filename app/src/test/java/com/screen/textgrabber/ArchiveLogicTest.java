@@ -2,9 +2,12 @@ package com.screen.textgrabber;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -107,5 +110,38 @@ public class ArchiveLogicTest {
         assertTrue(csv.contains("\"微信 (com.tencent.mm)\""));
         assertTrue(csv.contains("\"com.tencent.mm\""));
         assertTrue(csv.contains("\"第一行 \"\"引用\"\"\n第二行\""));
+    }
+
+    @Test
+    public void screenTextExtractor_buildPromptWithPrefix_handlesDefaultAndBlank() {
+        String extracted = "  标题文本\n第一段内容\n第二段内容  ";
+        String withDefault = ScreenTextExtractor.buildPromptWithPrefix(
+                ScreenTextExtractor.DEFAULT_PREFIX,
+                extracted
+        );
+        assertEquals("详细总结\n标题文本\n第一段内容\n第二段内容", withDefault);
+        assertTrue(withDefault.startsWith("详细总结\n"));
+
+        String noPrefix = ScreenTextExtractor.buildPromptWithPrefix("   ", extracted);
+        assertEquals("标题文本\n第一段内容\n第二段内容", noPrefix);
+
+        assertEquals("", ScreenTextExtractor.buildPromptWithPrefix("详细总结", "   \n  "));
+        assertEquals("", ScreenTextExtractor.buildPromptWithPrefix("详细总结", null));
+    }
+
+    @Test
+    public void screenTextExtractor_appendCandidateLine_dedupsLongLinesAndKeepsShortLabels() {
+        List<String> lines = new ArrayList<>();
+        Set<String> seenLong = new HashSet<>();
+
+        ScreenTextExtractor.appendCandidateLine("这是一段较长的重复段落文字", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("这是一段较长的重复段落文字", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("A", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("B", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("这是一段较长的重复段落文字", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("A", lines, seenLong);
+        ScreenTextExtractor.appendCandidateLine("   ", lines, seenLong);
+
+        assertEquals(Arrays.asList("这是一段较长的重复段落文字", "A", "B", "A"), lines);
     }
 }

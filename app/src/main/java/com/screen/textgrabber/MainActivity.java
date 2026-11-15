@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
     private Handler mainHandler;
 
     private SwitchCompat toggleSwitch;
+    private SwitchCompat floatingToggleSwitch;
+    private EditText etFloatPrefix;
     private TextView tvCounter;
     private TextView tvDbSize;
     private TextView tvServiceStatus;
@@ -125,6 +127,9 @@ public class MainActivity extends AppCompatActivity {
 
         currentMode = sp.getInt("view_mode", ArchiveFormatter.MODE_TIMELINE_PACKETS);
         newestFirst = sp.getBoolean("newest_first", true);
+        if (!sp.contains("float_copy_prefix")) {
+            sp.edit().putString("float_copy_prefix", ScreenTextExtractor.DEFAULT_PREFIX).apply();
+        }
 
         appLabelResolver = new ArchiveFormatter.AppLabelResolver() {
             @Override
@@ -148,6 +153,8 @@ public class MainActivity extends AppCompatActivity {
         tvArchiveSummary = findViewById(R.id.tv_archive_summary);
         tvEmpty = findViewById(R.id.tv_empty);
         toggleSwitch = findViewById(R.id.btn_toggle);
+        floatingToggleSwitch = findViewById(R.id.btn_floating_toggle);
+        etFloatPrefix = findViewById(R.id.et_float_prefix);
 
         btnClearAll = findViewById(R.id.btn_clear_all);
         btnExportAll = findViewById(R.id.btn_export_all);
@@ -186,6 +193,46 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, R.string.permission_hint, Toast.LENGTH_LONG).show();
                     startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
                 }
+            }
+        });
+
+        floatingToggleSwitch.setChecked(sp.getBoolean("floating_enabled", false));
+        floatingToggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                sp.edit().putBoolean("floating_enabled", isChecked).apply();
+                MyAccessibilityService.syncFloatingWindowState();
+                if (isChecked) {
+                    if (!isAccessibilitySettingsOn(MainActivity.this) || !MyAccessibilityService.isServiceConnected()) {
+                        Toast.makeText(
+                                MainActivity.this,
+                                R.string.floating_need_accessibility_toast,
+                                Toast.LENGTH_LONG
+                        ).show();
+                        if (!isAccessibilitySettingsOn(MainActivity.this)) {
+                            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                        }
+                    } else {
+                        Toast.makeText(MainActivity.this, R.string.floating_enabled_toast, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+
+        etFloatPrefix.setText(sp.getString("float_copy_prefix", ScreenTextExtractor.DEFAULT_PREFIX));
+        etFloatPrefix.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String value = s != null ? s.toString() : "";
+                sp.edit().putString("float_copy_prefix", value).apply();
             }
         });
 
@@ -313,6 +360,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshServiceStatusUi();
+        MyAccessibilityService.syncFloatingWindowState();
         mainHandler.removeCallbacks(periodicRefreshRunnable);
         mainHandler.post(periodicRefreshRunnable);
         reloadArchiveData(false);
